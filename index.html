@@ -125,7 +125,7 @@ tempInput.addEventListener("input", () => {
     alertBox.innerText = "⚠️ 溫度過高（冷凍應 ≤ -18°C）";
     tempInput.classList.add("warning");
   }
-  else if(device.includes("冷凍") && temp > -55){
+  else if(device.includes("超低溫") && temp > -55){
     alertBox.innerText = "⚠️ 溫度過高（冷凍應 ≤ -60°C）";
     tempInput.classList.add("warning");   
   else{
