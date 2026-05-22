@@ -23,7 +23,7 @@ h2 {
   margin-top:0;
 }
 
-/* 🔥 新增提醒文字 */
+/* 🔥 提醒文字 */
 .notice {
   font-weight:bold;
   margin-bottom:15px;
@@ -87,20 +87,33 @@ button:disabled {
 
   <h2 id="title">設備記錄</h2>
 
-  <!-- 🔥 新增提醒文字 -->
   <div class="notice">
-    每日10/15/20整點時紀錄
+    每日10 / 15 / 20整點時紀錄
   </div>
 
-  <input id="temp" type="number" step="0.1" placeholder="請輸入溫度">
+  <input
+    id="temp"
+    type="number"
+    step="0.1"
+    placeholder="請輸入溫度"
+  >
 
   <div id="alert" class="warning-text"></div>
 
-  <input id="name" placeholder="請輸入姓名">
+  <input
+    id="name"
+    placeholder="請輸入姓名"
+  >
 
-  <input id="remark" placeholder="備註(若有異常請填寫原因)">
+  <input
+    id="remark"
+    placeholder="備註(若有異常請填寫原因)"
+  >
 
-  <button id="submitBtn" onclick="send()">
+  <button
+    id="submitBtn"
+    onclick="send()"
+  >
     送出
   </button>
 
@@ -114,7 +127,40 @@ const API_URL =
 "https://script.google.com/macros/s/AKfycbzXy0Bfeo0gU_SjcgBp3Jksj-74BUiL0fwCH4om0C02VaOai_rzIF2hIlCJrRwciWhu/exec";
 
 
+// =========================
+// 🔥 分頁對應溫層
+// =========================
+
+const deviceTypeMap = {
+
+  // 冷藏
+  "1": "冷藏",
+  "2": "冷藏",
+  "3": "冷藏",
+  "4": "冷藏",
+  "6": "冷藏",
+  "9": "冷藏",
+  "10": "冷藏",
+
+  // 冷凍
+  "5": "冷凍",
+  "7": "冷凍",
+  "8": "冷凍",
+  "11": "冷凍",
+  "12": "冷凍",
+  "13": "冷凍",
+  "14": "冷凍",
+  "15": "冷凍",
+
+  // 超低溫
+  "16": "超低溫"
+};
+
+
+// =========================
 // 🔥 取得設備名稱
+// =========================
+
 function getDevice(){
 
   return new URLSearchParams(window.location.search)
@@ -130,10 +176,21 @@ const alertBox =
   document.getElementById("alert");
 
 
+// =========================
+// 🔥 取得設備溫層
+// =========================
+
+const deviceType =
+  deviceTypeMap[device] || "";
+
+
+// =========================
 // 🔥 標題
+// =========================
+
 document.getElementById("title").innerText =
   device
-    ? device + " 溫度記錄"
+    ? "設備 " + device + " 溫度記錄"
     : "⚠️ 未指定設備";
 
 
@@ -154,10 +211,12 @@ tempInput.addEventListener("input", () => {
     return;
   }
 
+  // =====================
   // 冷藏
+  // =====================
+
   if(
-    device &&
-    device.includes("冷藏") &&
+    deviceType === "冷藏" &&
     temp > 10
   ){
 
@@ -167,11 +226,12 @@ tempInput.addEventListener("input", () => {
     tempInput.classList.add("warning");
   }
 
+  // =====================
   // 冷凍
+  // =====================
+
   else if(
-    device &&
-    device.includes("冷凍") &&
-    !device.includes("超低溫") &&
+    deviceType === "冷凍" &&
     temp > -15
   ){
 
@@ -181,10 +241,12 @@ tempInput.addEventListener("input", () => {
     tempInput.classList.add("warning");
   }
 
+  // =====================
   // 超低溫
+  // =====================
+
   else if(
-    device &&
-    device.includes("超低溫") &&
+    deviceType === "超低溫" &&
     temp > -55
   ){
 
@@ -220,11 +282,11 @@ function send(){
 
   const name =
     document.getElementById("name")
-    .value.trim();
+      .value.trim();
 
   const remark =
     document.getElementById("remark")
-    .value.trim();
+      .value.trim();
 
   if(!device){
 
@@ -247,43 +309,54 @@ function send(){
     return;
   }
 
+  // =====================
   // 🔥 異常必填備註
+  // =====================
+
   const t = parseFloat(temp);
 
+  let isAbnormal = false;
+
+  // 冷藏
   if(
-
-    (
-      device.includes("冷藏") &&
-      t > 10
-    )
-
-    ||
-
-    (
-      device.includes("冷凍") &&
-      !device.includes("超低溫") &&
-      t > -15
-    )
-
-    ||
-
-    (
-      device.includes("超低溫") &&
-      t > -55
-    )
-
+    deviceType === "冷藏" &&
+    t > 10
   ){
-
-    if(!remark){
-
-      msg.innerText =
-        "⚠️ 異常請填寫備註";
-
-      return;
-    }
+    isAbnormal = true;
   }
 
+  // 冷凍
+  if(
+    deviceType === "冷凍" &&
+    t > -15
+  ){
+    isAbnormal = true;
+  }
+
+  // 超低溫
+  if(
+    deviceType === "超低溫" &&
+    t > -55
+  ){
+    isAbnormal = true;
+  }
+
+  // 異常未填備註
+  if(
+    isAbnormal &&
+    !remark
+  ){
+
+    msg.innerText =
+      "⚠️ 異常請填寫備註";
+
+    return;
+  }
+
+  // =====================
   // 🔥 UI 狀態
+  // =====================
+
   btn.disabled = true;
 
   btn.classList.add("loading");
@@ -312,7 +385,10 @@ function send(){
 
   .then(() => {
 
+    // =====================
     // 🔥 完成畫面
+    // =====================
+
     document.body.innerHTML = `
       <div style="
         text-align:center;
