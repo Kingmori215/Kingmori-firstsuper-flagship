@@ -1,22 +1,157 @@
-<script>
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>冷凍冷藏溫度複核頁</title>
 
-// =========================
-// 🔥 API
-// =========================
+<style>
+body {
+  font-family: sans-serif;
+  padding:20px;
+  background:#f5f5f5;
+}
+
+.card {
+  background:white;
+  padding:20px;
+  border-radius:12px;
+  margin-bottom:20px;
+}
+
+h2 {
+  margin-top:0;
+}
+
+h3 {
+  margin-top:30px;
+  background:#4CAF50;
+  color:white;
+  padding:10px;
+  border-radius:8px;
+  font-size:18px;
+}
+
+table {
+  width:100%;
+  border-collapse: collapse;
+  margin-top:10px;
+  font-size:14px;
+}
+
+td, th {
+  border:1px solid #ccc;
+  padding:8px;
+  text-align:center;
+}
+
+button {
+  width:100%;
+  padding:14px;
+  margin-top:15px;
+  background:#4CAF50;
+  color:white;
+  border:none;
+  border-radius:8px;
+  font-size:18px;
+  transition:0.2s;
+}
+
+button:active {
+  transform: scale(0.96);
+}
+
+button.loading {
+  background:#999;
+}
+
+button:disabled {
+  opacity:0.6;
+}
+
+.checked {
+  background:#e8f5e9;
+}
+
+.unchecked {
+  background:#fff3e0;
+}
+
+/* 🔥 異常溫度 */
+.temp-danger {
+  color:red;
+  font-weight:bold;
+  font-size:16px;
+}
+
+/* 🔥 載入畫面 */
+.loading-screen {
+  position: fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:#f5f5f5;
+  font-size:32px;
+  font-weight:bold;
+  z-index:999;
+}
+
+input {
+  width:100%;
+  padding:12px;
+  margin-top:15px;
+  border-radius:8px;
+  border:1px solid #ccc;
+  font-size:16px;
+}
+
+#msg {
+  margin-top:15px;
+  text-align:center;
+  font-weight:bold;
+}
+</style>
+</head>
+
+<body>
+
+<!-- 🔥 載入畫面 -->
+<div id="loading" class="loading-screen">
+  載入中...
+</div>
+
+<div class="card" id="main" style="display:none;">
+
+  <h2>冷凍冷藏溫度複核</h2>
+
+  <div id="tableArea"></div>
+
+  <input id="checker" placeholder="請輸入複核者姓名">
+
+  <button id="btn" onclick="submitCheck()">
+    確認全部複核
+  </button>
+
+  <p id="msg"></p>
+
+</div>
+
+<script>
 
 const API = "https://script.google.com/macros/s/AKfycbzXy0Bfeo0gU_SjcgBp3Jksj-74BUiL0fwCH4om0C02VaOai_rzIF2hIlCJrRwciWhu/exec";
 
 
-// =========================
-// 🔥 設備名稱
-// =========================
-
+// 🔥 設備名稱設定
 const deviceNames = {
 
   "1":  "冷藏-咖啡機冰箱",
   "2":  "冷藏-咖啡機下方",
   "3":  "冷藏-牛奶冰箱",
-  "4":  "冷藏-小農商品+退冰商品",
+  "4":  "冷藏-小農商品",
   "5":  "冷凍-前中島(右)",
   "6":  "冷藏-蔬菜冰箱",
   "7":  "冷凍-三門直立",
@@ -32,28 +167,7 @@ const deviceNames = {
 };
 
 
-// =========================
-// 🔥 分頁 → 溫層對應（核心修正）
-// =========================
-
-function getTempZone(device){
-
-  const d = Number(device);
-
-  if([1,2,3,4,6,9,10].includes(d)) return "冷藏";
-
-  if([5,7,8,11,12,13,14,15].includes(d)) return "冷凍";
-
-  if(d === 16) return "超低溫";
-
-  return "";
-}
-
-
-// =========================
-// 🔥 載入資料
-// =========================
-
+// 🔥 設備清單
 const devices = Object.keys(deviceNames);
 
 let allRows = [];
@@ -61,13 +175,12 @@ let allRows = [];
 loadAllDevices();
 
 
+// 🔵 載入全部設備
 async function loadAllDevices(){
 
   let html = "";
 
   for(const device of devices){
-
-    const zone = getTempZone(device);
 
     try {
 
@@ -77,11 +190,13 @@ async function loadAllDevices(){
 
       const data = await res.json();
 
+      // 保存資料供複核使用
       data.forEach(d => {
         d.device = device;
         allRows.push(d);
       });
 
+      // 🔥 顯示設備名稱
       html += `
         <h3>
           設備${device} - ${deviceNames[device]}
@@ -90,7 +205,12 @@ async function loadAllDevices(){
 
       if(data.length === 0){
 
-        html += `<p style="padding:10px;">⚠️ 沒有資料</p>`;
+        html += `
+          <p style="padding:10px;">
+            ⚠️ 沒有資料
+          </p>
+        `;
+
         continue;
       }
 
@@ -108,32 +228,50 @@ async function loadAllDevices(){
 
       data.forEach(d => {
 
+        // 🔥 時間格式
         let t = "";
+
         if(d.time){
+
           let time = new Date(d.time);
-          t = time.getHours().toString().padStart(2,'0') + ":" +
-              time.getMinutes().toString().padStart(2,'0');
+
+          t =
+            time.getHours().toString().padStart(2,'0')
+            + ":" +
+            time.getMinutes().toString().padStart(2,'0');
         }
+
+        // 🔥 溫度異常判斷
+        let tempClass = "";
+        let tempValue = d.temp;
 
         const temp = parseFloat(d.temp);
-        let tempClass = "";
 
-        // =========================
-        // 🔥 溫層合規判斷（修正版）
-        // =========================
-
-        if(zone === "冷藏" && temp > 10){
+        // 冷藏 > 10
+        if(
+          deviceNames[device].includes("冷藏")
+          && temp > 10
+        ){
           tempClass = "temp-danger";
         }
 
-        else if(zone === "冷凍" && temp > -15){
+        // 冷凍 > -15
+        if(
+          deviceNames[device].includes("冷凍")
+          && temp > -15
+        ){
           tempClass = "temp-danger";
         }
 
-        else if(zone === "超低溫" && temp > -55){
+        // 超低溫 > -55
+        if(
+          deviceNames[device].includes("超低溫")
+          && temp > -55
+        ){
           tempClass = "temp-danger";
         }
 
+        // 🔥 複核資訊
         let checkInfo = "未複核";
         let rowClass = "unchecked";
 
@@ -143,7 +281,9 @@ async function loadAllDevices(){
           let timeStr = "";
 
           if(d.checkDate){
+
             let cd = new Date(d.checkDate);
+
             dateStr =
               cd.getFullYear() + "/" +
               (cd.getMonth()+1).toString().padStart(2,'0') + "/" +
@@ -151,13 +291,18 @@ async function loadAllDevices(){
           }
 
           if(d.checkTime){
+
             let ct = new Date(d.checkTime);
+
             timeStr =
-              ct.getHours().toString().padStart(2,'0') + ":" +
+              ct.getHours().toString().padStart(2,'0')
+              + ":" +
               ct.getMinutes().toString().padStart(2,'0');
           }
 
-          checkInfo = `${d.checker}<br>${dateStr} ${timeStr}`;
+          checkInfo =
+            `${d.checker}<br>${dateStr} ${timeStr}`;
+
           rowClass = "checked";
         }
 
@@ -165,7 +310,11 @@ async function loadAllDevices(){
         <tr class="${rowClass}">
           <td>${d.date}</td>
           <td>${t}</td>
-          <td class="${tempClass}">${d.temp}°C</td>
+
+          <td class="${tempClass}">
+            ${tempValue}°C
+          </td>
+
           <td>${d.name}</td>
           <td>${d.remark || ""}</td>
           <td>${checkInfo}</td>
@@ -178,7 +327,10 @@ async function loadAllDevices(){
     } catch(e){
 
       html += `
-        <h3>設備${device} - ${deviceNames[device]}</h3>
+        <h3>
+          設備${device} - ${deviceNames[device]}
+        </h3>
+
         <p>❌ 讀取失敗</p>
       `;
     }
@@ -186,15 +338,13 @@ async function loadAllDevices(){
 
   document.getElementById("tableArea").innerHTML = html;
 
+  // 🔥 顯示主畫面
   document.getElementById("loading").style.display = "none";
   document.getElementById("main").style.display = "block";
 }
 
 
-// =========================
-// 🔥 複核
-// =========================
-
+// 🔥 全部複核
 async function submitCheck(){
 
   const btn = document.getElementById("btn");
@@ -213,6 +363,7 @@ async function submitCheck(){
 
     for(const r of allRows){
 
+      // 只複核未複核資料
       if(!r.checker){
 
         await fetch(API, {
@@ -227,12 +378,18 @@ async function submitCheck(){
       }
     }
 
+    // 🔥 完成畫面
     document.body.innerHTML = `
-      <div style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;">
-        <div>
-          <h1>✅ 全部設備複核完成</h1>
-          <p>可直接關閉此頁面</p>
-        </div>
+      <div style="
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        height:100vh;
+        flex-direction:column;
+        font-family:sans-serif;
+      ">
+        <h1>✅ 全部設備複核完成</h1>
+        <p>可直接關閉此頁面</p>
       </div>
     `;
 
@@ -247,3 +404,6 @@ async function submitCheck(){
 }
 
 </script>
+
+</body>
+</html>
