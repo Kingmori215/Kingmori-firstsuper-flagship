@@ -90,7 +90,7 @@ button:disabled {
 
 <script>
 
-const API_URL = "https://script.google.com/macros/s/AKfycbzG-rsW9enCg1uOJwCardM9xyUQS2QbIUwEXj4ylV_D-xhKupgSpWmEstwo5lQsUHTBgg/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzwgUu5L0ImgsNMxPPRGUVbTZ7IqCPpGOH1EZy6HhlwSbL2QrsOjRX6tw1XUVPj-7yp/exec";
 
 // 取得設備
 function getDevice(){
@@ -117,14 +117,17 @@ tempInput.addEventListener("input", () => {
     return;
   }
 
-  if(device.includes("冷藏") && temp > 7){
+  if(device.includes("冷藏") && temp > 10){
     alertBox.innerText = "⚠️ 溫度過高（冷藏應 ≤ 7°C）";
     tempInput.classList.add("warning");
   }
-  else if(device.includes("冷凍") && temp > -18){
+  else if(device.includes("冷凍") && temp > -15){
     alertBox.innerText = "⚠️ 溫度過高（冷凍應 ≤ -18°C）";
     tempInput.classList.add("warning");
   }
+  else if(device.includes("冷凍") && temp > -55){
+    alertBox.innerText = "⚠️ 溫度過高（冷凍應 ≤ -60°C）";
+    tempInput.classList.add("warning");   
   else{
     alertBox.innerText = "";
     tempInput.classList.remove("warning");
@@ -160,8 +163,9 @@ function send(){
   // 🔴 異常強制備註
   const t = parseFloat(temp);
   if(
-    (device.includes("冷藏") && t > 7) ||
-    (device.includes("冷凍") && t > -18)
+    (device.includes("冷藏") && t > 10) ||
+    (device.includes("冷凍") && t > -15)||
+    (device.includes("超低溫") && t > -55)
   ){
     if(!remark){
       msg.innerText = "⚠️ 異常請填寫備註";
