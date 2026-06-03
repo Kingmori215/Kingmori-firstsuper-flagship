@@ -124,7 +124,7 @@ button:disabled {
 <script>
 
 const API_URL =
-"https://script.google.com/macros/s/AKfycby8STvVQk23k5iYO3fM0cqDZqRnOasQIXWhQOCmWVGF030xZge6WCiMpn_FC_1WkKyZ/exec";
+"https://script.google.com/macros/s/AKfycbyRteE7UzhluP2zFWFB2H1jZea7w2EAOB9pyhRUgB90Cgd_F4vzpYQ8aMkRjR6DZPOs/exec";
 
 
 // =========================
@@ -141,9 +141,11 @@ const deviceTypeMap = {
   "9": "冷藏",
   "10": "冷藏",
 
+  // 冰溫
+  "2": "冰溫",
+  
   // 冷凍
   "5": "冷凍",
-  "2": "冷凍",
   "7": "冷凍",
   "8": "冷凍",
   "11": "冷凍",
@@ -213,7 +215,6 @@ tempInput.addEventListener("input", () => {
 
   // =====================
   // 冷藏
-  // =====================
 
   if(
     deviceType === "冷藏" &&
@@ -226,7 +227,20 @@ tempInput.addEventListener("input", () => {
     tempInput.classList.add("warning");
   }
 
+  // 冰溫
   // =====================
+
+  if(
+    deviceType === "冰溫" &&
+    temp > 0
+  ){
+
+    alertBox.innerText =
+      "⚠️ 溫度過高（冷藏應 ≤ 0°C）";
+
+    tempInput.classList.add("warning");
+  }
+    
   // 冷凍
   // =====================
 
@@ -325,6 +339,15 @@ function send(){
     isAbnormal = true;
   }
 
+  // 冰溫
+  if(
+    deviceType === "冰溫" &&
+    t > 0
+  ){
+    isAbnormal = true;
+  }
+
+  
   // 冷凍
   if(
     deviceType === "冷凍" &&
