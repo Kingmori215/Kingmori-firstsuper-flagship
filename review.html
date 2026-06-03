@@ -247,26 +247,26 @@ async function loadAllDevices(){
 
         const temp = parseFloat(d.temp);
 
-        // 冷藏 > 10
+        // 冷藏 > 7
         if(
           deviceNames[device].includes("冷藏")
-          && temp > 10
+          && temp > 7
         ){
           tempClass = "temp-danger";
         }
 
-        // 冷凍 > -15
+        // 冷凍 > -18
         if(
           deviceNames[device].includes("冷凍")
-          && temp > -15
+          && temp > -18
         ){
           tempClass = "temp-danger";
         }
 
-        // 超低溫 > -55
+        // 超低溫 > -60
         if(
           deviceNames[device].includes("超低溫")
-          && temp > -55
+          && temp > -60
         ){
           tempClass = "temp-danger";
         }
