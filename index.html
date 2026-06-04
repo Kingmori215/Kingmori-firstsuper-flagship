@@ -262,7 +262,7 @@ function send() {
     if (!temp) {
         // 檢查備註是否「不包含」除霜兩個字
         if (!remark.includes("除霜")) {
-            msg.innerText = "⚠️ 未輸入溫度時，備註欄必須填寫「除霜」原因說明！";
+            msg.innerHTML = "<b>⚠️ 請輸入溫度，未輸入溫度時，備註欄必須填寫「除霜」原因說明！</b>";
             msg.className = "warning-text"; // 讓提示文字變成紅色醒目
             return;
         }
