@@ -197,242 +197,127 @@ document.getElementById("title").innerText =
 
 
 // =========================
-// 🔥 溫度異常判斷
+// 🔥 溫度異常判斷 (修正版)
 // =========================
-
 tempInput.addEventListener("input", () => {
-
-  const temp = parseFloat(tempInput.value);
-
-  if(isNaN(temp)){
-
-    alertBox.innerText = "";
-
-    tempInput.classList.remove("warning");
-
-    return;
-  }
-
-  // =====================
-  // 冷藏
-
-  if(
-    deviceType === "冷藏" &&
-    temp > 10
-  ){
-
-    alertBox.innerText =
-      "⚠️ 溫度過高（冷藏應 ≤ 7°C）";
-
-    tempInput.classList.add("warning");
-  }
-
-  // 冰溫
-  // =====================
-
-  if(
-    deviceType === "冰溫" &&
-    temp > 0
-  ){
-
-    alertBox.innerText =
-      "⚠️ 溫度過高（冰溫應 ≤ 0°C）";
-
-    tempInput.classList.add("warning");
-  }
+    const temp = parseFloat(tempInput.value);
     
-  // 冷凍
-  // =====================
+    // 如果欄位是空的，清空警告並返回 (這樣除霜時不填溫度才不會一直顯示紅色)
+    if (tempInput.value.trim() === "") {
+        alertBox.innerText = "";
+        tempInput.classList.remove("warning");
+        return;
+    }
 
-  else if(
-    deviceType === "冷凍" &&
-    temp > -15
-  ){
+    if (isNaN(temp)) {
+        alertBox.innerText = "";
+        tempInput.classList.remove("warning");
+        return;
+    }
 
-    alertBox.innerText =
-      "⚠️ 溫度過高（冷凍應 ≤ -18°C）";
-
-    tempInput.classList.add("warning");
-  }
-
-  // =====================
-  // 超低溫
-  // =====================
-
-  else if(
-    deviceType === "超低溫" &&
-    temp > -55
-  ){
-
-    alertBox.innerText =
-      "⚠️ 溫度過高（超低溫應 ≤ -60°C）";
-
-    tempInput.classList.add("warning");
-  }
-
-  else{
-
-    alertBox.innerText = "";
-
-    tempInput.classList.remove("warning");
-  }
+    // =====================
+    // 冷藏
+    if (deviceType === "冷藏" && temp > 10) {
+        alertBox.innerText = "⚠️ 溫度過高（冷藏應 ≤ 7°C）";
+        tempInput.classList.add("warning");
+    }
+    // 冰溫
+    else if (deviceType === "冰溫" && temp > 0) {
+        alertBox.innerText = "⚠️ 溫度過高（冰溫應 ≤ 0°C）";
+        tempInput.classList.add("warning");
+    }
+    // 冷凍
+    else if (deviceType === "冷凍" && temp > -15) {
+        alertBox.innerText = "⚠️ 溫度過高（冷凍應 ≤ -18°C）";
+        tempInput.classList.add("warning");
+    }
+    // 超低溫
+    else if (deviceType === "超低溫" && temp > -55) {
+        alertBox.innerText = "⚠️ 溫度過高（超低溫應 ≤ -60°C）";
+        tempInput.classList.add("warning");
+    } 
+    else {
+        alertBox.innerText = "";
+        tempInput.classList.remove("warning");
+    }
 });
 
 
 // =========================
-// 🔥 送出
+// 🔥 送出 (修正版)
 // =========================
+function send() {
+    const btn = document.getElementById("submitBtn");
+    const msg = document.getElementById("msg");
+    const temp = tempInput.value.trim();
+    const name = document.getElementById("name").value.trim();
+    const remark = document.getElementById("remark").value.trim();
 
-function send(){
+    if (!device) { msg.innerText = "❌ 沒有設備參數"; return; }
+    if (!name) { msg.innerText = "⚠️ 請輸入姓名"; return; }
 
-  const btn =
-    document.getElementById("submitBtn");
+    // ===================================
+    // 🔥 新邏輯：如果沒填溫度，檢查備註是否寫了除霜
+    // ===================================
+    if (!temp) {
+        // 如果沒填溫度，且備註也是空的 -> 攔截
+        if (!remark) {
+            msg.innerText = "⚠️ 請輸入溫度，若為除霜請在備註說明";
+            return;
+        }
+        // 如果沒填溫度，但備註有寫字，就放行（isAbnormal 設為 false，因為除霜不算溫度異常）
+    }
 
-  const msg =
-    document.getElementById("msg");
+    // =====================
+    // 🔥 溫層異常必填備註 (有填溫度時才判斷)
+    // =====================
+    let isAbnormal = false;
+    if (temp) {
+        const t = parseFloat(temp);
+        if (deviceType === "冷藏" && t > 10) { isAbnormal = true; }
+        if (deviceType === "冰溫" && t > 0) { isAbnormal = true; }
+        if (deviceType === "冷凍" && t > -15) { isAbnormal = true; }
+        if (deviceType === "超低溫" && t > -55) { isAbnormal = true; }
+    }
 
-  const temp =
-    tempInput.value.trim();
+    // 異常未填備註
+    if (isAbnormal && !remark) {
+        msg.innerText = "⚠️ 異常請填寫備註";
+        return;
+    }
 
-  const name =
-    document.getElementById("name")
-      .value.trim();
+    // =====================
+    // 🔥 UI 狀態與送出
+    // =====================
+    btn.disabled = true;
+    btn.classList.add("loading");
+    btn.innerText = "送出中...";
+    msg.innerText = "";
 
-  const remark =
-    document.getElementById("remark")
-      .value.trim();
-
-  if(!device){
-
-    msg.innerText = "❌ 沒有設備參數";
-
-    return;
-  }
-
-  if(!temp){
-
-    msg.innerText = "⚠️ 請輸入溫度";
-
-    return;
-  }
-
-  if(!name){
-
-    msg.innerText = "⚠️ 請輸入姓名";
-
-    return;
-  }
-
-  // =====================
-  // 🔥 異常必填備註
-  // =====================
-
-  const t = parseFloat(temp);
-
-  let isAbnormal = false;
-
-  // 冷藏
-  if(
-    deviceType === "冷藏" &&
-    t > 10
-  ){
-    isAbnormal = true;
-  }
-
-  // 冰溫
-  if(
-    deviceType === "冰溫" &&
-    t > 0
-  ){
-    isAbnormal = true;
-  }
-
-  
-  // 冷凍
-  if(
-    deviceType === "冷凍" &&
-    t > -15
-  ){
-    isAbnormal = true;
-  }
-
-  // 超低溫
-  if(
-    deviceType === "超低溫" &&
-    t > -55
-  ){
-    isAbnormal = true;
-  }
-
-  // 異常未填備註
-  if(
-    isAbnormal &&
-    !remark
-  ){
-
-    msg.innerText =
-      "⚠️ 異常請填寫備註";
-
-    return;
-  }
-
-  // =====================
-  // 🔥 UI 狀態
-  // =====================
-
-  btn.disabled = true;
-
-  btn.classList.add("loading");
-
-  btn.innerText = "送出中...";
-
-  msg.innerText = "";
-
-  fetch(API_URL, {
-
-    method: "POST",
-
-    body: new URLSearchParams({
-
-      action: "write",
-
-      temp: temp,
-
-      name: name,
-
-      remark: remark,
-
-      device: device
+    fetch(API_URL, {
+        method: "POST",
+        body: new URLSearchParams({
+            action: "write",
+            temp: temp ? temp : "除霜中", // 如果沒填溫度，Google Sheets 欄位會貼心寫入 "除霜中"
+            name: name,
+            remark: remark,
+            device: device
+        })
     })
-  })
-
-  .then(() => {
-
-    // =====================
-    // 🔥 完成畫面
-    // =====================
-
-    document.body.innerHTML = `
-      <div style="
-        text-align:center;
-        padding:40px;
-      ">
-        <h2>✅ 已送出</h2>
-        <p>可直接關閉此頁面</p>
-      </div>
-    `;
-  })
-
-  .catch(() => {
-
-    msg.innerText = "❌ 寫入失敗";
-
-    btn.disabled = false;
-
-    btn.classList.remove("loading");
-
-    btn.innerText = "送出";
-  });
+    .then(() => {
+        document.body.innerHTML = `
+            <div style="text-align:center; padding:40px;">
+                <h2>✅ 已送出</h2>
+                <p>可直接關閉此頁面</p>
+            </div>
+        `;
+    })
+    .catch(() => {
+        msg.innerText = "❌ 寫入失敗";
+        btn.disabled = false;
+        btn.classList.remove("loading");
+        btn.innerText = "送出";
+    });
 }
 
 </script>
